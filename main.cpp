@@ -12,6 +12,7 @@
 #include "src/include/Shader.h"
 #include "src/include/Input.h"
 #include "src/include/Constants.h"
+#include "src/include/Color.h"
 
 GLFWwindow* StartGLFW();
 
@@ -60,8 +61,8 @@ int main() {
     // Create Bodies
     std::vector<Body> objects;
     objects.reserve(2);
-    objects.emplace_back(Vec2(640.0, 360.0), Vec2(0.0, 0.0), SUN_MASS, 35.0f);
-    objects.emplace_back(Vec2(640.0 + EARTH_DIST, 360.0), Vec2(0.0, v_orbit), EARTH_MASS, 10.0f);
+    objects.emplace_back(Vec2(640.0, 360.0), Vec2(0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
+    objects.emplace_back(Vec2(640.0 + EARTH_DIST, 360.0), Vec2(0.0, v_orbit), EARTH_MASS, 10.0f, EARTH_COLOR);
 
     float dt = 0.016f; // Simulation time step per frame
 

@@ -7,6 +7,7 @@
 #include <deque>
 
 #include "Vec2.h"
+#include "Color.h"
 
 class Body {
 
@@ -16,6 +17,8 @@ public:
     Vec2 velocity;
     double mass;
     float radius;
+    Vec2 color;
+    CLR clr;
 
     GLuint vao, vbo;
     int vertexCount;
@@ -23,7 +26,7 @@ public:
     std::deque<Vec2> history;
     const size_t maxHistory = 400;
 
-    Body(Vec2 position, Vec2 velocity, double mass, float radius = 15.0f) : position(position), velocity(velocity), mass(mass), radius(radius) {
+    Body(Vec2 position, Vec2 velocity, double mass, float radius = 15.0f, CLR clr = CLR(1.0f, 1.0f, 1.0f)) : position(position), velocity(velocity), mass(mass), radius(radius), clr(clr) {
         setupMesh();
     }
 
@@ -76,6 +79,9 @@ public:
 
     void draw(GLuint shaderProgram, const Vec2& screenCenter) {
         glUseProgram(shaderProgram);
+
+        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r, clr.g, clr.b);
+
         glUniform2f(glGetUniformLocation(shaderProgram, "offset"), (float)position.x, (float)position.y);
 
         glBindVertexArray(vao);
@@ -104,6 +110,7 @@ public:
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
 
+        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r * 0.5f, clr.g * 0.5f, clr.b * 0.5f);
         glUniform2f(glGetUniformLocation(shaderProgram, "offset"), 0.0f, 0.0f);
 
         glDrawArrays(GL_LINE_STRIP, 0, history.size());
