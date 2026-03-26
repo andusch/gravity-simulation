@@ -1,8 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <fstream>
-#include <sstream>
 #include <cmath>
 
 // headers for OpenGL and GLFW
@@ -12,28 +10,8 @@
 #include "src/include/Body.h"
 #include "src/include/Display.h"
 #include "src/include/Shader.h"
-
-std::string readFile(const std::string& filePath) {
-    std::ifstream file(filePath);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filePath << std::endl;
-        return "";
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
-
-void setOrtho(GLuint program, float left, float right, float bottom, float top) {
-    float ortho[16] = {
-        2.0f / (right - left), 0, 0, 0,
-        0, 2.0f / (top - bottom), 0, 0,
-        0, 0, -1, 0,
-        -(right + left) / (right - left), -(top + bottom) / (top - bottom), 0, 1
-    };
-    glUseProgram(program);
-    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, ortho);
-}
+#include "src/include/Input.h"
+#include "src/include/Constants.h"
 
 GLFWwindow* StartGLFW();
 
@@ -41,10 +19,9 @@ int main() {
 
     // Setup Window
     GLFWwindow* window = StartGLFW();
-    if(!window) return -1;             // safety check
-
+    if(!window) return -1; // safety check
     
-    // Load and compile shaders
+    /* ---------- Load and compile shaders ---------- */
     std::string vSourceStr = readFile("./src/shaders/vertex_shader.glsl");
     std::string fSourceStr = readFile("./src/shaders/fragment_shader.glsl");
     const char* vSource = vSourceStr.c_str();
@@ -71,21 +48,11 @@ int main() {
     glLinkProgram(shaderProgram);
     checkCompileErrors(shaderProgram, "PROGRAM");
 
-    // debug shader linking
-    GLint success;
-    GLchar infoLog[512];
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-        return -1; // Stop before the crash
-    }
+    // Check shader linking
+    checkShaderLinking(shaderProgram);
 
-    // Simulation Constants
-    const double G = 100.0;
-    const double SUN_MASS = 1000.0;
-    const double EARTH_MASS = 1.0;
-    const double EARTH_DIST = 250.0;
+    /* ---------------------------------------------- */
+
 
     // Circular Orbit Velocity
     double v_orbit = std::sqrt((G * SUN_MASS) / EARTH_DIST);
@@ -106,7 +73,7 @@ int main() {
         // Set Projection (matches your screen dims)
         setOrtho(shaderProgram, 0.0f, 1280.0f, 0.0f, 720.0f);
 
-        // Gravity Simulation
+        /* ------------- Gravity Simulation ------------- */
         std::vector<Vec2> accelerations(objects.size(), Vec2(0.0f, 0.0f)); // initialize accelerations
 
         for (size_t i = 0; i < objects.size(); ++i) {
@@ -127,23 +94,27 @@ int main() {
 
             }
         }
+        /* ---------------------------------------------- */
 
-        // Integration and rendering
+        /* ---------- Integration and rendering ---------- */
         glUseProgram(shaderProgram);
         for (size_t i = 0; i < objects.size(); ++i) {
             objects[i].accelerate(accelerations[i] * dt);         // update velocity
             objects[i].updatePosition();                          // update position
             objects[i].draw(shaderProgram, objects[i].position);  // draw body
         }
+        /* ---------------------------------------------- */
 
         glfwSwapBuffers(window);             // swap buffers front and back
         glfwPollEvents();                    // poll events (inputs, )
     }
 
-    // Cleanup
+    /* ------------------- Cleanup ------------------- */
     glDeleteProgram(shaderProgram);
     glDeleteShader(vs);
     glDeleteShader(fs);
     glfwTerminate();
+    /* ---------------------------------------------- */
+
     return 0;
 }

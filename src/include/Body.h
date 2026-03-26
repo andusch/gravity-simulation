@@ -22,6 +22,14 @@ public:
         setupMesh();
     }
 
+    void accelerate(const Vec2& acceleration) {
+        velocity = velocity + acceleration;
+    }
+
+    void updatePosition(){
+        position = position + (velocity * 0.016f); 
+    }
+
     void setupMesh() {
         
         int resolution = 50;
@@ -62,14 +70,6 @@ public:
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertexCount);
         glBindVertexArray(0);
-    }
-
-    void accelerate(const Vec2& acceleration) {
-        velocity = velocity + acceleration;
-    }
-
-    void updatePosition(){
-        position = position + (velocity * 0.016f); 
     }
 
 };
