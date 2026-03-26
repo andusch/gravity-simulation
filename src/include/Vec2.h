@@ -1,3 +1,6 @@
+#ifndef VEC2_H
+#define VEC2_H
+
 #include <cmath>
 
 class Vec2 {
@@ -16,3 +19,5 @@ public:
     Vec2 normalized() const { double len = length(); return Vec2(x / len, y / len); }
 
 };
+
+#endif // VEC2_H

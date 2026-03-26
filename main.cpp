@@ -1,87 +1,149 @@
 #include <iostream>
-
 #include <vector>
-#include <math.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <cmath>
 
 // headers for OpenGL and GLFW
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "./src/Display.h"
 
-// header for the Body class
-#include "./src/Body.h"
+#include "src/include/Body.h"
+#include "src/include/Display.h"
+#include "src/include/Shader.h"
 
-// screen dimensions
-const float screenWidth = 1280.0f;
-const float screenHeight = 720.0f;
+std::string readFile(const std::string& filePath) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filePath << std::endl;
+        return "";
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
 
-// physics constants
-const float G = 6.67430 * pow(10, -11); // gravitational constant
+void setOrtho(GLuint program, float left, float right, float bottom, float top) {
+    float ortho[16] = {
+        2.0f / (right - left), 0, 0, 0,
+        0, 2.0f / (top - bottom), 0, 0,
+        0, 0, -1, 0,
+        -(right + left) / (right - left), -(top + bottom) / (top - bottom), 0, 1
+    };
+    glUseProgram(program);
+    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, ortho);
+}
 
 GLFWwindow* StartGLFW();
 
 int main() {
 
+    // Setup Window
     GLFWwindow* window = StartGLFW();
     if(!window) return -1;             // safety check
 
-    glMatrixMode(GL_PROJECTION);                     // set up projection matrix
-    glLoadIdentity();                                // reset projection matrix
-    glOrtho(0, screenWidth, 0, screenHeight, -1, 1); // set up orthographic projection
-    glMatrixMode(GL_MODELVIEW);                      // switch to modelview matrix
-    glLoadIdentity();                                // reset modelview matrix
+    
+    // Load and compile shaders
+    std::string vSourceStr = readFile("./src/shaders/vertex_shader.glsl");
+    std::string fSourceStr = readFile("./src/shaders/fragment_shader.glsl");
+    const char* vSource = vSourceStr.c_str();
+    const char* fSource = fSourceStr.c_str();
 
-    float centerX = screenWidth / 2.0f;
-    float centerY = screenHeight / 2.0f;
-    float radius = 15.0f;
-    int resolution = 100;
+    if (vSourceStr.empty() || fSourceStr.empty()) {
+        std::cerr << "Shader files are empty or not found!" << std::endl;
+        return -1;
+    }
 
-    std::vector<Body> objects = {
-        Body(Vec2(200.f, 300.f), Vec2(0.0f, 1500.0f), 7.35 * pow(10, 22)),
-        Body(Vec2(700.f, 300.f), Vec2(0.0f, -1500.0f), 7.35 * pow(10, 22)),
-    };
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &vSource, NULL);
+    glCompileShader(vs);
+    checkCompileErrors(vs, "VERTEX");
+
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &fSource, NULL);
+    glCompileShader(fs);
+    checkCompileErrors(fs, "FRAGMENT");
+
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vs);
+    glAttachShader(shaderProgram, fs);
+    glLinkProgram(shaderProgram);
+    checkCompileErrors(shaderProgram, "PROGRAM");
+
+    // debug shader linking
+    GLint success;
+    GLchar infoLog[512];
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+        return -1; // Stop before the crash
+    }
+
+    // Simulation Constants
+    const double G = 100.0;
+    const double SUN_MASS = 1000.0;
+    const double EARTH_MASS = 1.0;
+    const double EARTH_DIST = 250.0;
+
+    // Circular Orbit Velocity
+    double v_orbit = std::sqrt((G * SUN_MASS) / EARTH_DIST);
+
+    // Create Bodies
+    std::vector<Body> objects;
+    objects.reserve(2);
+    objects.emplace_back(Vec2(640.0, 360.0), Vec2(0.0, 0.0), SUN_MASS, 35.0f);
+    objects.emplace_back(Vec2(640.0 + EARTH_DIST, 360.0), Vec2(0.0, v_orbit), EARTH_MASS, 10.0f);
+
+    float dt = 0.016f; // Simulation time step per frame
 
     while(!glfwWindowShouldClose(window)) {
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);         // clear the color buffer
+        // Clear Screen
+        glClearColor(0.05f, 0.05f, 0.08f, 1.0f); // Dark space blue
+        glClear(GL_COLOR_BUFFER_BIT);
 
-        for(auto& obj : objects) {
+        // Set Projection (matches your screen dims)
+        setOrtho(shaderProgram, 0.0f, 1280.0f, 0.0f, 720.0f);
 
-            // calculate gravitational forces from other objects
-            for(auto& other : objects) {
-                
-                if(&obj == &other) continue; // skip self
+        // Gravity Simulation
+        std::vector<Vec2> accelerations(objects.size(), Vec2(0.0f, 0.0f)); // initialize accelerations
 
-                float dx = other.position.x - obj.position.x;
-                float dy = other.position.y - obj.position.y;
-                float distance = sqrt(dx * dx + dy * dy);
-                Vec2 direction = Vec2(dx / distance, dy / distance);
-                distance *= 1000; // scale distance for better simulation
+        for (size_t i = 0; i < objects.size(); ++i) {
+            for(size_t j = 0; j < objects.size(); ++j) {
 
-                float GForce = (G * obj.mass * other.mass) / (distance * distance);
-                float acc1 = GForce / obj.mass;
+                if(i == j) continue;
 
-                Vec2 accVector = {direction.x * acc1, direction.y * acc1};
-                obj.accelerate(accVector);
+                Vec2 diff = objects[j].position - objects[i].position;
+                double distance = diff.length();
+
+                if (distance < 5.0f) distance = 5.0f;
+
+                double forceMag = (G * objects[i].mass * objects[j].mass) / (distance * distance);
+                Vec2 forceDir = diff.normalized();
+
+                // Newton's second law: a = F / m
+                accelerations[i] = accelerations[i] + (forceDir * (forceMag / objects[i].mass));
 
             }
-            
-            obj.updatePosition();
-            obj.drawCircle();
+        }
 
-            if(obj.position.y < 0 || obj.position.y > screenHeight) {
-                obj.velocity.y *= -0.95f;
-            }
-            if(obj.position.x < 0 || obj.position.x > screenWidth) {
-                obj.velocity.x *= -0.95f;
-            }
-            
+        // Integration and rendering
+        glUseProgram(shaderProgram);
+        for (size_t i = 0; i < objects.size(); ++i) {
+            objects[i].accelerate(accelerations[i] * dt);         // update velocity
+            objects[i].updatePosition();                          // update position
+            objects[i].draw(shaderProgram, objects[i].position);  // draw body
         }
 
         glfwSwapBuffers(window);             // swap buffers front and back
         glfwPollEvents();                    // poll events (inputs, )
     }
 
+    // Cleanup
+    glDeleteProgram(shaderProgram);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
     glfwTerminate();
     return 0;
 }
