@@ -1,10 +1,12 @@
 #ifndef BODY_H
 #define BODY_H
 
-#include "Vec2.h"
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <cmath>
+#include <deque>
+
+#include "Vec2.h"
 
 class Body {
 
@@ -18,12 +20,21 @@ public:
     GLuint vao, vbo;
     int vertexCount;
 
+    std::deque<Vec2> history;
+    const size_t maxHistory = 400;
+
     Body(Vec2 position, Vec2 velocity, double mass, float radius = 15.0f) : position(position), velocity(velocity), mass(mass), radius(radius) {
         setupMesh();
     }
 
     void accelerate(const Vec2& acceleration) {
         velocity = velocity + acceleration;
+
+        // Store history
+        history.push_back(position);
+        if (history.size() > maxHistory) {
+            history.pop_front();
+        }
     }
 
     void updatePosition(){
@@ -70,6 +81,37 @@ public:
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertexCount);
         glBindVertexArray(0);
+    }
+
+    void drawTrail(GLuint shaderProgram) {
+        if (history.size() < 2) return;
+
+        std::vector<float> trailVertices;
+        for (const Vec2& pos : history) {
+            trailVertices.push_back((float)pos.x);
+            trailVertices.push_back((float)pos.y);
+        }
+
+        GLuint tVAO, tVBO;
+        glGenVertexArrays(1, &tVAO);
+        glGenBuffers(1, &tVBO);
+
+        glBindVertexArray(tVAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, tVBO);
+        glBufferData(GL_ARRAY_BUFFER, trailVertices.size() * sizeof(float), trailVertices.data(), GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+
+        glUniform2f(glGetUniformLocation(shaderProgram, "offset"), 0.0f, 0.0f);
+
+        glDrawArrays(GL_LINE_STRIP, 0, history.size());
+
+        glBindVertexArray(0); 
+        glDeleteBuffers(1, &tVBO);
+        glDeleteVertexArrays(1, &tVAO);
+
     }
 
 };

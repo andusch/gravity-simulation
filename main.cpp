@@ -99,9 +99,14 @@ int main() {
         /* ---------- Integration and rendering ---------- */
         glUseProgram(shaderProgram);
         for (size_t i = 0; i < objects.size(); ++i) {
+
             objects[i].accelerate(accelerations[i] * dt);         // update velocity
             objects[i].updatePosition();                          // update position
+
+            objects[i].drawTrail(shaderProgram);                  // draw trail
+
             objects[i].draw(shaderProgram, objects[i].position);  // draw body
+
         }
         /* ---------------------------------------------- */
 
