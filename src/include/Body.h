@@ -124,10 +124,15 @@ public:
         
     }
 
-    void draw(GLuint shaderProgram) {
+    void draw(GLuint shaderProgram, bool sunMode, glm::vec3 currentLightPos) {
         glUseProgram(shaderProgram);
 
         glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r, clr.g, clr.b);
+
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), currentLightPos.x, currentLightPos.y, currentLightPos.z);
+
+        glUniform1i(glGetUniformLocation(shaderProgram, "isEmitter"), sunMode);
+
 
         // CREATE MODEL MATRIX: Move the sphere to its actual 3D position
         glm::mat4 model = glm::mat4(1.0f);
@@ -163,7 +168,9 @@ public:
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
 
-        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r * 0.5f, clr.g * 0.5f, clr.b * 0.5f);
+        glUniform1f(glGetUniformLocation(shaderProgram, "isEmitter"), true);
+        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r * 0.8f, clr.g * 0.8f, clr.b * 1.0f);
+        
         
         // For the trail, vertices are ALREADY in world space, so we use an Identity Matrix (No translation)
         glm::mat4 model = glm::mat4(1.0f);

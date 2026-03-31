@@ -6,6 +6,7 @@
 // Simulation Constants
 const double G = 100.0;
 
+const glm::vec3 LIGHT_POS(0.0f, 0.0f, 0.0f);
 const double SUN_MASS = 1000.0;
 const CLR SUN_COLOR(1.0f, 0.8f, 0.0f);
 

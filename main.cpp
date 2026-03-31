@@ -12,12 +12,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "src/include/Grid.h"
 #include "src/include/Body.h"
-#include "src/include/Display.h"
-#include "src/include/Shader.h"
-#include "src/include/Input.h"
-#include "src/include/Constants.h"
 #include "src/include/Color.h"
+#include "src/include/Input.h"
+#include "src/include/Shader.h"
+#include "src/include/Display.h"
+#include "src/include/Constants.h"
+
 
 GLFWwindow* StartGLFW();
 
@@ -73,15 +75,17 @@ int main() {
 
     float dt = 0.016f; // Simulation time step per frame
 
+    SpaceGrid grid(5000.0f, 50); // Large grid for better visibility
+
     while(!glfwWindowShouldClose(window)) {
         // Clear Screen
-        glClearColor(0.02f, 0.02f, 0.04f, 1.0f); // Dark space blue
+        glClearColor(0.05f, 0.05f, 0.1f, 1.0f); // Dark space blue
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
 
         // SETUP VIEW AND PROJECTION MATRICES
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1280.0f / 720.0f, 0.1f, 1000.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1280.0f / 720.0f, 0.1f, 10000.0f);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
         // Calculate delta time for consistent movement speed
@@ -125,6 +129,9 @@ int main() {
 
         /* ---------- Integration and rendering ---------- */
         glUseProgram(shaderProgram);
+
+        grid.draw(shaderProgram); // Draw the space grid
+
         for (size_t i = 0; i < objects.size(); ++i) {
 
             objects[i].accelerate(accelerations[i] * dt);         // update velocity
@@ -132,7 +139,7 @@ int main() {
 
             objects[i].drawTrail(shaderProgram);                  // draw trail
 
-            objects[i].draw(shaderProgram);                      // draw body
+            objects[i].draw(shaderProgram, i == 0, LIGHT_POS);    // draw body
 
         }
         /* ---------------------------------------------- */
