@@ -20,6 +20,46 @@
 #include "src/include/Display.h"
 #include "src/include/Constants.h"
 
+// camera variables
+float yaw = -90.0f;
+float pitch = 0.0f;
+float lastX = 1280.0f / 2.0f;
+float lastY = 720.0f / 2.0f;
+bool firstMouse = true;
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+ 
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+    
+}
 
 GLFWwindow* StartGLFW();
 
@@ -39,6 +79,9 @@ int main() {
         std::cerr << "Shader files are empty or not found!" << std::endl;
         return -1;
     }
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     GLuint vs = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vs, 1, &vSource, NULL);
@@ -69,9 +112,12 @@ int main() {
 
     // Create Bodies
     std::vector<Body> objects;
-    objects.reserve(2);
+    objects.reserve(5);
     objects.emplace_back(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
     objects.emplace_back(Vec3(EARTH_DIST, 0.0, 0.0), Vec3(0.0, v_orbit, 0.0), EARTH_MASS, 10.0f, EARTH_COLOR);
+    objects.emplace_back(Vec3(-EARTH_DIST * 1.5, 0.0, 0.0), Vec3(0.0, -v_orbit * 0.8, 0.0), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f));
+    objects.emplace_back(Vec3(EARTH_DIST * 1.5, 0.0, 0.0), Vec3(0.0, v_orbit * 0.8, 0.0), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f));
+    objects.emplace_back(Vec3(0.0, EARTH_DIST * 1.5, 0.0), Vec3(-v_orbit * 0.8, 0.0, 0.0), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f));
 
     float dt = 0.016f; // Simulation time step per frame
 
@@ -94,11 +140,12 @@ int main() {
         lastFrame = currentFrame;
 
         // simple keyboard input for camera movement
-        float cameraSpeed = 300.0f * deltaTime; // adjust accordingly
+        float cameraSpeed = 500.0f * deltaTime; // adjust accordingly
         if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += cameraSpeed * cameraFront;
         if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraFront;
         if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
         if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
