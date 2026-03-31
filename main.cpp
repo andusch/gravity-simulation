@@ -7,6 +7,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+// headers for GLM (math library)
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "src/include/Body.h"
 #include "src/include/Display.h"
 #include "src/include/Shader.h"
@@ -49,6 +54,8 @@ int main() {
     glLinkProgram(shaderProgram);
     checkCompileErrors(shaderProgram, "PROGRAM");
 
+    glEnable(GL_DEPTH_TEST); // Enable depth testing for proper 3D rendering
+
     // Check shader linking
     checkShaderLinking(shaderProgram);
 
@@ -61,34 +68,53 @@ int main() {
     // Create Bodies
     std::vector<Body> objects;
     objects.reserve(2);
-    objects.emplace_back(Vec2(640.0, 360.0), Vec2(0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
-    objects.emplace_back(Vec2(640.0 + EARTH_DIST, 360.0), Vec2(0.0, v_orbit), EARTH_MASS, 10.0f, EARTH_COLOR);
+    objects.emplace_back(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
+    objects.emplace_back(Vec3(EARTH_DIST, 0.0, 0.0), Vec3(0.0, v_orbit, 0.0), EARTH_MASS, 10.0f, EARTH_COLOR);
 
     float dt = 0.016f; // Simulation time step per frame
 
     while(!glfwWindowShouldClose(window)) {
         // Clear Screen
-        glClearColor(0.05f, 0.05f, 0.08f, 1.0f); // Dark space blue
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.02f, 0.02f, 0.04f, 1.0f); // Dark space blue
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Set Projection (matches your screen dims)
-        setOrtho(shaderProgram, 0.0f, 1280.0f, 0.0f, 720.0f);
+        glUseProgram(shaderProgram);
+
+        // SETUP VIEW AND PROJECTION MATRICES
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1280.0f / 720.0f, 0.1f, 1000.0f);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+        // Calculate delta time for consistent movement speed
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        // simple keyboard input for camera movement
+        float cameraSpeed = 300.0f * deltaTime; // adjust accordingly
+        if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += cameraSpeed * cameraFront;
+        if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraFront;
+        if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+
+        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
 
         /* ------------- Gravity Simulation ------------- */
-        std::vector<Vec2> accelerations(objects.size(), Vec2(0.0f, 0.0f)); // initialize accelerations
+        std::vector<Vec3> accelerations(objects.size(), Vec3(0.0f, 0.0f, 0.0f)); // initialize accelerations
 
         for (size_t i = 0; i < objects.size(); ++i) {
             for(size_t j = 0; j < objects.size(); ++j) {
 
                 if(i == j) continue;
 
-                Vec2 diff = objects[j].position - objects[i].position;
+                Vec3 diff = objects[j].position - objects[i].position;
                 double distance = diff.length();
 
                 if (distance < 5.0f) distance = 5.0f;
 
                 double forceMag = (G * objects[i].mass * objects[j].mass) / (distance * distance);
-                Vec2 forceDir = diff.normalized();
+                Vec3 forceDir = diff.normalized();
 
                 // Newton's second law: a = F / m
                 accelerations[i] = accelerations[i] + (forceDir * (forceMag / objects[i].mass));
@@ -106,7 +132,7 @@ int main() {
 
             objects[i].drawTrail(shaderProgram);                  // draw trail
 
-            objects[i].draw(shaderProgram, objects[i].position);  // draw body
+            objects[i].draw(shaderProgram);                      // draw body
 
         }
         /* ---------------------------------------------- */
