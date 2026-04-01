@@ -113,7 +113,7 @@ int main() {
     // Create Bodies
     std::vector<Body> objects;
     objects.reserve(5);
-    objects.emplace_back(Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
+    objects.emplace_back(LIGHT_POS_VEC3, Vec3(0.0, 0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
     objects.emplace_back(Vec3(EARTH_DIST, 100.0, 0.0), Vec3(0.0, 0.0, v_orbit), EARTH_MASS, 10.0f, EARTH_COLOR); // EARTH
     objects.emplace_back(Vec3(-EARTH_DIST * 1.5, 100.0, 0.0), Vec3(0.0, 0.0, -v_orbit * 0.8), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f)); // RED DWARF
     objects.emplace_back(Vec3(EARTH_DIST * 1.5, 100.0, 0.0), Vec3(0.0, 0.0, v_orbit * 0.8), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f)); // RED DWARF
@@ -151,6 +151,7 @@ int main() {
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
+        glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
         /* ------------- Gravity Simulation ------------- */
         std::vector<Vec3> accelerations(objects.size(), Vec3(0.0f, 0.0f, 0.0f)); // initialize accelerations
