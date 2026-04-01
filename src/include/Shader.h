@@ -22,17 +22,6 @@ GLuint createProgram(const char* vSource, const char* fSource) {
     return program;
 }
 
-void setOrtho(GLuint program, float left, float right, float bottom, float top) {
-    float ortho[16] = {
-        2.0f / (right - left), 0, 0, 0,
-        0, 2.0f / (top - bottom), 0, 0,
-        0, 0, -1, 0,
-        -(right + left) / (right - left), -(top + bottom) / (top - bottom), 0, 1
-    };
-    glUseProgram(program);
-    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, ortho);
-}
-
 void checkShaderLinking(GLuint shaderProgram) {
     GLint success;
     GLchar infoLog[512];
