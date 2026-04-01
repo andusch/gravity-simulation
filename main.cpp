@@ -113,11 +113,12 @@ int main() {
     // Create Bodies
     std::vector<Body> objects;
     objects.reserve(5);
-    objects.emplace_back(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
-    objects.emplace_back(Vec3(EARTH_DIST, 0.0, 0.0), Vec3(0.0, v_orbit, 0.0), EARTH_MASS, 10.0f, EARTH_COLOR);
-    objects.emplace_back(Vec3(-EARTH_DIST * 1.5, 0.0, 0.0), Vec3(0.0, -v_orbit * 0.8, 0.0), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f));
-    objects.emplace_back(Vec3(EARTH_DIST * 1.5, 0.0, 0.0), Vec3(0.0, v_orbit * 0.8, 0.0), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f));
-    objects.emplace_back(Vec3(0.0, EARTH_DIST * 1.5, 0.0), Vec3(-v_orbit * 0.8, 0.0, 0.0), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f));
+    objects.emplace_back(Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 0.0), SUN_MASS, 35.0f, SUN_COLOR);
+    objects.emplace_back(Vec3(EARTH_DIST, 100.0, 0.0), Vec3(0.0, 0.0, v_orbit), EARTH_MASS, 10.0f, EARTH_COLOR); // EARTH
+    objects.emplace_back(Vec3(-EARTH_DIST * 1.5, 100.0, 0.0), Vec3(0.0, 0.0, -v_orbit * 0.8), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f)); // RED DWARF
+    objects.emplace_back(Vec3(EARTH_DIST * 1.5, 100.0, 0.0), Vec3(0.0, 0.0, v_orbit * 0.8), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f)); // RED DWARF
+    objects.emplace_back(Vec3(0.0, 100.0, -EARTH_DIST * 1.5), Vec3(v_orbit * 0.8, 0.0, 0.0f), EARTH_MASS * 0.5, 7.0f, CLR(1.0f, 0.4f, 0.4f)); // RED DWARF
+
 
     float dt = 0.016f; // Simulation time step per frame
 
