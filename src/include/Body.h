@@ -28,7 +28,7 @@ public:
     int indexCount;
 
     std::deque<Vec3> history;
-    const size_t maxHistory = 400;
+    const size_t maxHistory = 1000;
 
     Body(Vec3 position, Vec3 velocity, double mass, float radius = 15.0f, CLR clr = CLR(1.0f, 1.0f, 1.0f)) : position(position), velocity(velocity), mass(mass), radius(radius), clr(clr) {
         setupMesh();
