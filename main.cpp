@@ -68,7 +68,7 @@ int main() {
     // Setup Window
     GLFWwindow* window = StartGLFW();
     if(!window) return -1; // safety check
-    
+
     /* ---------- Load and compile shaders ---------- */
     std::string vSourceStr = readFile("./src/shaders/vertex_shader.glsl");
     std::string fSourceStr = readFile("./src/shaders/fragment_shader.glsl");
@@ -144,6 +144,8 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
+
+        updateFPS(window);    // Start FPS counter
 
         // SETUP VIEW AND PROJECTION MATRICES
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1280.0f / 720.0f, 0.1f, 10000.0f);

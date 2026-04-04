@@ -40,4 +40,23 @@ GLFWwindow* StartGLFW() {
 
 }
 
+void updateFPS(GLFWwindow* window) {
+    
+    static double previousTime = glfwGetTime();
+    static int frameCount = 0;
+    double currentTime = glfwGetTime();
+    double elapsedTime = currentTime - previousTime;
+    
+    frameCount++;
+
+    if (elapsedTime >= 1.0) {
+        double fps = frameCount / elapsedTime;
+        std::string title = "Gravity Simulation: Solar System - FPS: " + std::to_string(static_cast<int>(fps));
+        glfwSetWindowTitle(window, title.c_str());
+        previousTime = currentTime;
+        frameCount = 0;
+    }
+
+}
+
 #endif // DISPLAY_H
