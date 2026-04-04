@@ -45,9 +45,9 @@ A real-time 3D N-body gravity simulation built with C++ and OpenGL 3.3. This pro
 │   │   ├── Display.h
 │   │   ├── Grid.h
 │   │   ├── Input.h
+│   │   ├── PathUtils.h
 │   │   ├── Shader.h
-│   │   ├── Vec2.h
-│   │   └── Vec3.h
+│   │   └── Simulation.h
 │   └── shaders/
 │       ├── vertex_shader.glsl
 │       └── fragment_shader.glsl

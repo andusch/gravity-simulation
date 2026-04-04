@@ -2,7 +2,14 @@
 CXX = clang++
 CXXFLAGS = -std=c++17 -Wall -MMD -MP
 INCLUDES = -I./dependencies/include
+
+UNAME_S := $(shell uname)
+ifeq ($(UNAME_S),Darwin)
 LIBS = -L./dependencies/lib -lglfw.3
+else
+LIBS = -L./dependencies/lib -lglfw.3 -lstdc++fs
+endif
+
 FRAMEWORKS = -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 
 # dependencies/lib folder for runtime

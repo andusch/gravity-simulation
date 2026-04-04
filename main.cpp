@@ -19,7 +19,9 @@
 #include "src/include/Shader.h"
 #include "src/include/Display.h"
 #include "src/include/Constants.h"
+#include "src/include/PathUtils.h"
 #include "src/include/Simulation.h"
+
 
 // camera variables
 float yaw = -90.0f;
@@ -71,8 +73,8 @@ int main() {
     if(!window) return -1; // safety check
 
     /* ---------- Load and compile shaders ---------- */
-    std::string vSourceStr = readFile("./src/shaders/vertex_shader.glsl");
-    std::string fSourceStr = readFile("./src/shaders/fragment_shader.glsl");
+    std::string vSourceStr = readFile(PathUtils::getShaderPath("vertex_shader.glsl"));
+    std::string fSourceStr = readFile(PathUtils::getShaderPath("fragment_shader.glsl"));
     const char* vSource = vSourceStr.c_str();
     const char* fSource = fSourceStr.c_str();
 
