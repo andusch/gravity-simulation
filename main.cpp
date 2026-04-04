@@ -113,11 +113,11 @@ int main() {
     objects.reserve(9);
 
     // Sun
-    objects.emplace_back(SUN_POS, Vec3(0.0f, 0.0f, 5.0f), SUN_MASS, 35.0f, SUN_COLOR);
+    objects.emplace_back(SUN_POS, glm::vec3(0.0f, 0.0f, 5.0f), SUN_MASS, 35.0f, SUN_COLOR);
 
     auto addPlanet = [&](double distance, double mass, float radius, CLR color) {
         double v = std::sqrt(G * SUN_MASS / distance);
-        objects.emplace_back(Vec3(distance, SUN_POS.y, 0.0f), Vec3(0.0f, v, 0.0f), mass, radius, color);
+        objects.emplace_back(glm::vec3(distance, SUN_POS.y, 0.0f), glm::vec3(0.0f, v, 0.0f), mass, radius, color);
     };
 
     
@@ -170,23 +170,23 @@ int main() {
         glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
         /* ------------- Gravity Simulation ------------- */
-        std::vector<Vec3> accelerations(objects.size(), Vec3(0.0f, 0.0f, 0.0f)); // initialize accelerations
+        std::vector<glm::vec3> accelerations(objects.size(), glm::vec3(0.0f, 0.0f, 0.0f)); // initialize accelerations
 
         for (size_t i = 0; i < objects.size(); ++i) {
             for(size_t j = 0; j < objects.size(); ++j) {
 
                 if(i == j) continue;
 
-                Vec3 diff = objects[j].position - objects[i].position;
-                double distance = diff.length();
+                glm::vec3 diff = objects[j].position - objects[i].position;
+                double distance = glm::length(diff);
 
                 if (distance < 5.0f) distance = 5.0f;
 
                 double forceMag = (G * objects[i].mass * objects[j].mass) / (distance * distance);
-                Vec3 forceDir = diff.normalized();
+                glm::vec3 forceDir = glm::normalize(diff);
 
                 // Newton's second law: a = F / m
-                accelerations[i] = accelerations[i] + (forceDir * (forceMag / objects[i].mass));
+                accelerations[i] = accelerations[i] + (forceDir * (static_cast<float>(forceMag) / static_cast<float>(objects[i].mass)));
 
             }
         }
@@ -204,7 +204,7 @@ int main() {
 
             objects[i].drawTrail(shaderProgram);                  // draw trail
 
-            objects[i].draw(shaderProgram, i == 0, LIGHT_POS);    // draw body
+            objects[i].draw(shaderProgram, i == 0, SUN_POS);    // draw body
 
         }
         /* ---------------------------------------------- */

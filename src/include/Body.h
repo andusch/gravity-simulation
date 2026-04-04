@@ -10,7 +10,6 @@
 #include <cmath>
 #include <deque>
 
-#include "Vec3.h"
 #include "Color.h"
 
 class Body {
@@ -22,23 +21,22 @@ private:
 
 public:
 
-    Vec3 position;
-    Vec3 velocity;
+    glm::vec3 position;
+    glm::vec3 velocity;
     double mass;
     float radius;
-    // Vec3 color;
     CLR clr;
 
     GLuint vao, vbo, ebo;
     int indexCount;
 
-    std::deque<Vec3> history;
+    std::deque<glm::vec3> history;
     const size_t maxHistory = 5000;
 
     Body(const Body&) = delete;
     Body& operator=(const Body&) = delete;
 
-    Body(Vec3 position, Vec3 velocity, double mass, float radius = 15.0f, CLR clr = CLR(1.0f, 1.0f, 1.0f)) : position(position), velocity(velocity), mass(mass), radius(radius), clr(clr) {
+    Body(glm::vec3 position, glm::vec3 velocity, double mass, float radius = 15.0f, CLR clr = CLR(1.0f, 1.0f, 1.0f)) : position(position), velocity(velocity), mass(mass), radius(radius), clr(clr) {
         setupMesh();
     }
 
@@ -66,7 +64,7 @@ public:
         cleanupTrail();
     }
 
-    void accelerate(const Vec3& acceleration) {
+    void accelerate(const glm::vec3& acceleration) {
         velocity = velocity + acceleration;
 
         // Store history
@@ -157,12 +155,10 @@ public:
     }
 
     void draw(GLuint shaderProgram, bool sunMode, glm::vec3 currentLightPos) {
+        
         glUseProgram(shaderProgram);
-
         glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r, clr.g, clr.b);
-
         glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), currentLightPos.x, currentLightPos.y, currentLightPos.z);
-
         glUniform1i(glGetUniformLocation(shaderProgram, "isEmitter"), sunMode);
 
 
@@ -205,7 +201,7 @@ public:
         if (!trailInitialized) initializeTrailBuffers();
 
         trailVertices.clear();
-        for (const Vec3& pos : history) {
+        for (const glm::vec3& pos : history) {
             trailVertices.push_back((float)pos.x);
             trailVertices.push_back((float)pos.y);
             trailVertices.push_back((float)pos.z); // Added Z axis
