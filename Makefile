@@ -1,6 +1,6 @@
 # Variables
 CXX = clang++
-CXXFLAGS = -std=c++17 -Wall
+CXXFLAGS = -std=c++17 -Wall -MMD -MP
 INCLUDES = -I./dependencies/include
 LIBS = -L./dependencies/lib -lglfw.3
 FRAMEWORKS = -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
@@ -12,10 +12,28 @@ RPATH = -Wl,-rpath,$(shell pwd)/dependencies/lib
 TARGET = main
 SRC = main.cpp glad.c
 
+OBJ = $(SRC:.cpp=.o)
+OBJ := $(OBJ:.c=.o)
+DEP = $(OBJ:.o=.d)
+
 all: $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRC) $(LIBS) $(FRAMEWORKS) $(RPATH) -o $(TARGET)
+# Linking the final executable
+$(TARGET): $(OBJ)
+	$(CXX) $(OBJ) $(LIBS) $(FRAMEWORKS) $(RPATH) -o $(TARGET)
+
+# Rule for compiling C++ files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Rule for compiling C files (glad.c)
+%.o: %.c
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# The "Magic" line: include the generated dependency files
+-include $(DEP)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJ) $(DEP)
+
+.PHONY: all clean

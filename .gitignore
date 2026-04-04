@@ -1,2 +1,8 @@
 main
 dependencies/
+
+# Ignore object files and dependency files
+main.o
+main.d
+glad.o
+glad.d
