@@ -28,7 +28,7 @@ public:
     int indexCount;
 
     std::deque<Vec3> history;
-    const size_t maxHistory = 1000;
+    const size_t maxHistory = 5000;
 
     Body(Vec3 position, Vec3 velocity, double mass, float radius = 15.0f, CLR clr = CLR(1.0f, 1.0f, 1.0f)) : position(position), velocity(velocity), mass(mass), radius(radius), clr(clr) {
         setupMesh();
@@ -169,7 +169,8 @@ public:
         glEnableVertexAttribArray(0);
 
         glUniform1f(glGetUniformLocation(shaderProgram, "isEmitter"), true);
-        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r * 0.8f, clr.g * 0.8f, clr.b * 1.0f);
+        // glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r * 0.8f, clr.g * 0.8f, clr.b * 1.0f);
+        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), 1.0f, 1.0f, 1.0f); // Trail is always white for better visibility
         
         
         // For the trail, vertices are ALREADY in world space, so we use an Identity Matrix (No translation)

@@ -113,13 +113,14 @@ int main() {
     objects.reserve(9);
 
     // Sun
-    objects.emplace_back(SUN_POS, Vec3(0.0f, 0.0f, 0.0f), SUN_MASS, 35.0f, SUN_COLOR);
+    objects.emplace_back(SUN_POS, Vec3(0.0f, 0.0f, 5.0f), SUN_MASS, 35.0f, SUN_COLOR);
 
     auto addPlanet = [&](double distance, double mass, float radius, CLR color) {
         double v = std::sqrt(G * SUN_MASS / distance);
-        objects.emplace_back(Vec3(distance, SUN_POS.y, 0.0f), Vec3(0.0f, 0.0f, v), mass, radius, color);
+        objects.emplace_back(Vec3(distance, SUN_POS.y, 0.0f), Vec3(0.0f, v, 0.0f), mass, radius, color);
     };
 
+    
     addPlanet(MERCURY_DIST, MERCURY_MASS, 10.0f, MERCURY_COLOR);
     addPlanet(VENUS_DIST, VENUS_MASS, 12.0f, VENUS_COLOR);
     addPlanet(EARTH_DIST, EARTH_MASS, 14.0f, EARTH_COLOR);
@@ -128,6 +129,7 @@ int main() {
     addPlanet(SATURN_DIST, SATURN_MASS, 22.0f, SATURN_COLOR);
     addPlanet(URANUS_DIST, URANUS_MASS, 18.0f, URANUS_COLOR);
     addPlanet(NEPTUNE_DIST, NEPTUNE_MASS, 17.0f, NEPTUNE_COLOR);
+    
 
     /* --------------------------------------------- */
 

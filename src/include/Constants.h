@@ -7,8 +7,8 @@
 const double G = 100.0;
 
 // Light and Sun
-const glm::vec3 LIGHT_POS(0.0f, 200.0f, 0.0f);
-const Vec3 SUN_POS(0.0f, 200.0f, 0.0f);
+const glm::vec3 LIGHT_POS(0.0f, 500.0f, 0.0f);
+const Vec3 SUN_POS(0.0f, 500.0f, 0.0f);
 const double SUN_MASS = 1000.0;
 const CLR SUN_COLOR(1.0f, 0.8f, 0.0f);
 
