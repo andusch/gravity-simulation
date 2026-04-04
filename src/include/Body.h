@@ -15,6 +15,11 @@
 
 class Body {
 
+private:
+    GLuint trailVAO = 0, trailVBO = 0;
+    std::vector<float> trailVertices;
+    bool trailInitialized = false;
+
 public:
 
     Vec3 position;
@@ -30,8 +35,35 @@ public:
     std::deque<Vec3> history;
     const size_t maxHistory = 5000;
 
+    Body(const Body&) = delete;
+    Body& operator=(const Body&) = delete;
+
     Body(Vec3 position, Vec3 velocity, double mass, float radius = 15.0f, CLR clr = CLR(1.0f, 1.0f, 1.0f)) : position(position), velocity(velocity), mass(mass), radius(radius), clr(clr) {
         setupMesh();
+    }
+
+    Body(Body&& other) noexcept {
+        position = other.position;
+        velocity = other.velocity;
+        mass = other.mass;
+        radius = other.radius;
+        clr = other.clr;
+        vao = other.vao;
+        vbo = other.vbo;
+        ebo = other.ebo;
+        indexCount = other.indexCount;
+        history = std::move(other.history);
+        trailVAO = other.trailVAO;
+        trailVBO = other.trailVBO;
+        trailInitialized = other.trailInitialized;
+        
+        other.vao = other.vbo = other.ebo = 0;
+        other.trailVAO = other.trailVBO = 0;
+    }
+
+    ~Body() {
+        cleanupMesh();
+        cleanupTrail();
     }
 
     void accelerate(const Vec3& acceleration) {
@@ -145,44 +177,70 @@ public:
         glBindVertexArray(0);
     }
 
+    void initializeTrailBuffers() {
+
+        if (trailInitialized) return;
+
+        trailVertices.reserve(maxHistory * 3); // Reserve space for max history points (x, y, z)
+
+        glGenVertexArrays(1, &trailVAO);
+        glGenBuffers(1, &trailVBO);
+        
+        glBindVertexArray(trailVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, trailVBO);
+
+        // Allocate maximum size once
+        glBufferData(GL_ARRAY_BUFFER, maxHistory * 3 * sizeof(float), 
+                     nullptr, GL_DYNAMIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(0);
+        
+        trailInitialized = true;
+
+    }
+
     void drawTrail(GLuint shaderProgram) {
         if (history.size() < 2) return;
 
-        std::vector<float> trailVertices;
+        if (!trailInitialized) initializeTrailBuffers();
+
+        trailVertices.clear();
         for (const Vec3& pos : history) {
             trailVertices.push_back((float)pos.x);
             trailVertices.push_back((float)pos.y);
             trailVertices.push_back((float)pos.z); // Added Z axis
         }
 
-        GLuint tVAO, tVBO;
-        glGenVertexArrays(1, &tVAO);
-        glGenBuffers(1, &tVBO);
-
-        glBindVertexArray(tVAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, tVBO);
-        glBufferData(GL_ARRAY_BUFFER, trailVertices.size() * sizeof(float), trailVertices.data(), GL_DYNAMIC_DRAW);
-
-        // Attribute pointer now reads 3 floats (X, Y, Z)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glUniform1f(glGetUniformLocation(shaderProgram, "isEmitter"), true);
-        // glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), clr.r * 0.8f, clr.g * 0.8f, clr.b * 1.0f);
-        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), 1.0f, 1.0f, 1.0f); // Trail is always white for better visibility
+        glBindBuffer(GL_ARRAY_BUFFER, trailVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 
+                        trailVertices.size() * sizeof(float), 
+                        trailVertices.data());
         
+        glUniform1i(glGetUniformLocation(shaderProgram, "isEmitter"), true);
+        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), 
+                    1.0f, 1.0f, 1.0f);
         
-        // For the trail, vertices are ALREADY in world space, so we use an Identity Matrix (No translation)
         glm::mat4 model = glm::mat4(1.0f);
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 
+                           1, GL_FALSE, glm::value_ptr(model));
+        
+        glBindVertexArray(trailVAO);
         glDrawArrays(GL_LINE_STRIP, 0, history.size());
 
-        glBindVertexArray(0); 
-        glDeleteBuffers(1, &tVBO);
-        glDeleteVertexArrays(1, &tVAO);
+    }
 
+private:
+    void cleanupTrail() {
+        if (trailVAO) glDeleteVertexArrays(1, &trailVAO);
+        if (trailVBO) glDeleteBuffers(1, &trailVBO);
+        trailVAO = trailVBO = 0;
+    }
+
+    void cleanupMesh() {
+        if (ebo) glDeleteBuffers(1, &ebo);
+        if (vbo) glDeleteBuffers(1, &vbo);
+        if (vao) glDeleteVertexArrays(1, &vao);
+        vao = vbo = ebo = 0;
     }
 
 };
