@@ -19,6 +19,7 @@
 #include "src/include/Shader.h"
 #include "src/include/Display.h"
 #include "src/include/Constants.h"
+#include "src/include/Simulation.h"
 
 // camera variables
 float yaw = -90.0f;
@@ -100,27 +101,20 @@ int main() {
     checkCompileErrors(shaderProgram, "PROGRAM");
 
     glEnable(GL_DEPTH_TEST); // Enable depth testing for proper 3D rendering
-
-    // Check shader linking
     checkShaderLinking(shaderProgram);
 
     /* ---------------------------------------------- */
 
 
     /* ---------- Create celestial bodies ---------- */
-
-    std::vector<Body> objects;
-    objects.reserve(9);
-
-    // Sun
-    objects.emplace_back(SUN_POS, glm::vec3(0.0f, 0.0f, 5.0f), SUN_MASS, 35.0f, SUN_COLOR);
+    Simulation sim;
+    sim.addBody(Body(SUN_POS, glm::vec3(0.0f, 0.0f, 5.0f), SUN_MASS, 35.0f, SUN_COLOR));
 
     auto addPlanet = [&](double distance, double mass, float radius, CLR color) {
         double v = std::sqrt(G * SUN_MASS / distance);
-        objects.emplace_back(glm::vec3(distance, SUN_POS.y, 0.0f), glm::vec3(0.0f, v, 0.0f), mass, radius, color);
+        sim.addBody(Body(glm::vec3(distance, SUN_POS.y, 0.0f), glm::vec3(0.0f, v, 0.0f), mass, radius, color));
     };
 
-    
     addPlanet(MERCURY_DIST, MERCURY_MASS, 10.0f, MERCURY_COLOR);
     addPlanet(VENUS_DIST, VENUS_MASS, 12.0f, VENUS_COLOR);
     addPlanet(EARTH_DIST, EARTH_MASS, 14.0f, EARTH_COLOR);
@@ -129,32 +123,30 @@ int main() {
     addPlanet(SATURN_DIST, SATURN_MASS, 22.0f, SATURN_COLOR);
     addPlanet(URANUS_DIST, URANUS_MASS, 18.0f, URANUS_COLOR);
     addPlanet(NEPTUNE_DIST, NEPTUNE_MASS, 17.0f, NEPTUNE_COLOR);
-    
-
-    /* --------------------------------------------- */
-
-
-    float dt = 0.016f; // Simulation time step per frame
 
     SpaceGrid grid(5000.0f, 50); // Large grid for better visibility
 
+    const float FIXED_DT = 0.016f; // Fixed time step for physics updates (60 FPS)
+    float accumulator = 0.0f;
+    lastFrame = glfwGetTime();
+
     while(!glfwWindowShouldClose(window)) {
-        // Clear Screen
-        glClearColor(0.05f, 0.05f, 0.1f, 1.0f); // Dark space blue
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
-
-        updateFPS(window);    // Start FPS counter
-
-        // SETUP VIEW AND PROJECTION MATRICES
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1280.0f / 720.0f, 0.1f, 10000.0f);
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-
-        // Calculate delta time for consistent movement speed
+        // Time management for fixed physics updates
         float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
+        float frameTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        // Prevent "spiral of death" in case of very long frame times
+        if (frameTime > 0.25f) frameTime = 0.25f;
+
+        deltaTime = frameTime;
+        accumulator += frameTime;
+
+        while (accumulator >= FIXED_DT) {
+            sim.update(FIXED_DT);
+            accumulator -= FIXED_DT;
+        }
 
         // simple keyboard input for camera movement
         float cameraSpeed = 1000.0f * deltaTime; // adjust accordingly
@@ -164,50 +156,25 @@ int main() {
         if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
         if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
 
+
+        /* ---------- Render scene ---------- */
+        glClearColor(0.05f, 0.05f, 0.1f, 1.0f); // Dark space blue
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glUseProgram(shaderProgram);
+        updateFPS(window);    // Start FPS counter
+
+        // SETUP VIEW AND PROJECTION MATRICES
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1280.0f / 720.0f, 0.1f, 10000.0f);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
         glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
-        /* ------------- Gravity Simulation ------------- */
-        std::vector<glm::vec3> accelerations(objects.size(), glm::vec3(0.0f, 0.0f, 0.0f)); // initialize accelerations
-
-        for (size_t i = 0; i < objects.size(); ++i) {
-            for(size_t j = 0; j < objects.size(); ++j) {
-
-                if(i == j) continue;
-
-                glm::vec3 diff = objects[j].position - objects[i].position;
-                double distance = glm::length(diff);
-
-                if (distance < 5.0f) distance = 5.0f;
-
-                double forceMag = (G * objects[i].mass * objects[j].mass) / (distance * distance);
-                glm::vec3 forceDir = glm::normalize(diff);
-
-                // Newton's second law: a = F / m
-                accelerations[i] = accelerations[i] + (forceDir * (static_cast<float>(forceMag) / static_cast<float>(objects[i].mass)));
-
-            }
-        }
-        /* ---------------------------------------------- */
-
-        /* ---------- Integration and rendering ---------- */
-        glUseProgram(shaderProgram);
-
-        grid.draw(shaderProgram); // Draw the space grid
-
-        for (size_t i = 0; i < objects.size(); ++i) {
-
-            objects[i].accelerate(accelerations[i] * dt);         // update velocity
-            objects[i].updatePosition();                          // update position
-
-            objects[i].drawTrail(shaderProgram);                  // draw trail
-
-            objects[i].draw(shaderProgram, i == 0, SUN_POS);    // draw body
-
-        }
-        /* ---------------------------------------------- */
+        grid.draw(shaderProgram);
+        sim.render(shaderProgram, SUN_POS);
 
         glfwSwapBuffers(window);             // swap buffers front and back
         glfwPollEvents();                    // poll events (inputs, )

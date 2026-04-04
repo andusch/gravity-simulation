@@ -74,8 +74,8 @@ public:
         }
     }
 
-    void updatePosition(){
-        position = position + (velocity * 0.016f); 
+    void updatePosition(float dt){
+        position = position + (velocity * dt); 
     }
 
     void setupMesh() {
