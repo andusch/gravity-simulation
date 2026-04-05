@@ -17,7 +17,7 @@ RPATH = -Wl,-rpath,$(shell pwd)/dependencies/lib
 
 # Target names
 TARGET = main
-SRC = main.cpp glad.c
+SRC = main.cpp src/Camera.cpp glad.c
 
 OBJ = $(SRC:.cpp=.o)
 OBJ := $(OBJ:.c=.o)

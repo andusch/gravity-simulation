@@ -6,3 +6,5 @@ main.o
 main.d
 glad.o
 glad.d
+camera.o
+camera.d
