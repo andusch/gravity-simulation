@@ -17,11 +17,11 @@
 #include "src/include/Color.h"
 #include "src/include/Input.h"
 #include "src/include/Camera.h"
-#include "src/include/Shader.h"
 #include "src/include/Display.h"
 #include "src/include/Constants.h"
 #include "src/include/PathUtils.h"
 #include "src/include/Simulation.h"
+#include "src/include/ShaderProgram.h"
 
 Camera camera(glm::vec3(0.0f, 500.0f, 600.0f));
 float lastX = 1280.0f / 2.0f;
@@ -56,38 +56,12 @@ int main() {
     GLFWwindow* window = StartGLFW();
     if(!window) return -1; // safety check
 
-    /* ---------- Load and compile shaders ---------- */
-    std::string vSourceStr = readFile(PathUtils::getShaderPath("vertex_shader.glsl"));
-    std::string fSourceStr = readFile(PathUtils::getShaderPath("fragment_shader.glsl"));
-    const char* vSource = vSourceStr.c_str();
-    const char* fSource = fSourceStr.c_str();
-
-    if (vSourceStr.empty() || fSourceStr.empty()) {
-        std::cerr << "Shader files are empty or not found!" << std::endl;
-        return -1;
-    }
-
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
 
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &vSource, NULL);
-    glCompileShader(vs);
-    checkCompileErrors(vs, "VERTEX");
-
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs, 1, &fSource, NULL);
-    glCompileShader(fs);
-    checkCompileErrors(fs, "FRAGMENT");
-
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vs);
-    glAttachShader(shaderProgram, fs);
-    glLinkProgram(shaderProgram);
-    checkCompileErrors(shaderProgram, "PROGRAM");
-
     glEnable(GL_DEPTH_TEST); // Enable depth testing for proper 3D rendering
-    checkShaderLinking(shaderProgram);
+
+    ShaderProgram shader("vertex_shader.glsl", "fragment_shader.glsl");
 
     /* ---------------------------------------------- */
 
@@ -147,29 +121,26 @@ int main() {
         glClearColor(0.05f, 0.05f, 0.1f, 1.0f); // Dark space blue
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
+        shader.use();
         updateFPS(window);    // Start FPS counter
 
         // SETUP VIEW AND PROJECTION MATRICES
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1280.0f / 720.0f, 0.1f, 10000.0f);
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        shader.setMat4("projection", projection);
 
         glm::mat4 view = camera.GetViewMatrix();
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        shader.setMat4("view", view);
 
-        glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), camera.Position.x, camera.Position.y, camera.Position.z);
+        shader.setVec3("viewPos", camera.Position);
 
-        grid.draw(shaderProgram);
-        sim.render(shaderProgram, SUN_POS);
+        grid.draw(shader.ID);
+        sim.render(shader.ID, SUN_POS);
 
         glfwSwapBuffers(window);             // swap buffers front and back
         glfwPollEvents();                    // poll events (inputs, )
     }
 
     /* ------------------- Cleanup ------------------- */
-    glDeleteProgram(shaderProgram);
-    glDeleteShader(vs);
-    glDeleteShader(fs);
     glfwTerminate();
     /* ---------------------------------------------- */
 
